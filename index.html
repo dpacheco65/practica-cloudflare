@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Práctica Cloudflare — Dario</title>
+  <meta name="description" content="Sitio de práctica desplegado en Cloudflare Pages." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav">
+      <span class="logo">DR</span>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema">
+        <span class="theme-toggle-dot"></span>
+      </button>
+    </nav>
+
+    <div class="hero-content">
+      <p class="eyebrow">Práctica · Cloudflare Pages</p>
+      <h1>Hola, soy <span class="accent">Dario</span>.</h1>
+      <p class="lead">
+        Este sitio está desplegado en Cloudflare Pages desde un repositorio de GitHub.
+        Es el primer paso de un recorrido para aprender el ecosistema de Cloudflare.
+      </p>
+      <div class="meta">
+        <span class="badge">Edge network</span>
+        <span class="badge">HTTPS automático</span>
+        <span class="badge">Deploy continuo</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card-grid">
+      <article class="card">
+        <h2>1. Pages</h2>
+        <p>Hosting estático sobre la red global de Cloudflare. Conectado a GitHub: cada <code>git push</code> dispara un deploy.</p>
+      </article>
+      <article class="card">
+        <h2>2. Próximo paso</h2>
+        <p>Acortador de URLs con <strong>Workers</strong> y <strong>KV</strong>. Lógica en el edge, almacenamiento clave-valor.</p>
+      </article>
+      <article class="card">
+        <h2>3. Más adelante</h2>
+        <p>APIs con <strong>D1</strong> (SQLite serverless), storage con <strong>R2</strong> y modelos en <strong>Workers AI</strong>.</p>
+      </article>
+    </section>
+
+    <section class="status">
+      <h2>Estado del deploy</h2>
+      <p>
+        Última carga: <time id="last-load">—</time>
+      </p>
+      <p class="muted">Si ves esto en tu navegador, el deploy en Cloudflare Pages funcionó.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Hecho con HTML + CSS · Desplegado en Cloudflare Pages</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs
+*.log
+
+# Dependencias (por si más adelante agregamos node)
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.dev.vars
+
+# Cloudflare Wrangler (para futuros pasos con Workers)
+.wrangler/
