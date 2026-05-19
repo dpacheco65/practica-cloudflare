@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Informe — Práctica Cloudflare</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #141821;
+    --surface-2: #1c2230;
+    --text: #e8ecf1;
+    --muted: #8a93a6;
+    --accent: #f6821f;
+    --accent-dim: rgba(246, 130, 31, 0.15);
+    --border: #2a3142;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin: 0 0 0.4rem;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  h1 .accent { color: var(--accent); }
+  h2 {
+    font-size: 1.5rem;
+    margin: 3rem 0 1rem;
+    color: var(--accent);
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.15rem; margin: 1.8rem 0 0.6rem; }
+  p { margin: 0 0 1rem; }
+  .lead { color: var(--muted); font-size: 1.05rem; max-width: 65ch; }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .meta-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+  }
+  .meta-item .label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+  }
+  .meta-item .value { font-weight: 600; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card.success { border-left: 3px solid var(--green); }
+  .card.warn { border-left: 3px solid var(--accent); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { font-size: 0.88em; }
+
+  code {
+    background: var(--surface-2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.92em;
+    font-family: "Consolas", "Monaco", monospace;
+  }
+  pre {
+    background: #06080c;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 1rem 0;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin-bottom: 0.4rem; }
+  li strong { color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+  }
+  .badge.green { background: rgba(74, 222, 128, 0.12); color: var(--green); border-color: var(--green); }
+  .badge.blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: var(--blue); }
+  .badge.muted { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
+
+  a { color: var(--accent); }
+  a:hover { text-decoration: underline; }
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre;
+    color: var(--muted);
+    overflow-x: auto;
+  }
+  .diagram .hl-accent { color: var(--accent); }
+  .diagram .hl-green { color: var(--green); }
+  .diagram .hl-blue { color: var(--blue); }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .toc ol { margin: 0.5rem 0 0; }
+  .toc a { color: var(--text); }
+
+  .kbd {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85em;
+  }
+
+  .check::before { content: "[OK] "; color: var(--green); font-weight: 600; }
+  .x::before { content: "[X] "; color: var(--red); font-weight: 600; }
+  .step::before { content: ">> "; color: var(--accent); font-weight: 600; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <p class="eyebrow">Informe de práctica</p>
+  <h1>Aprendiendo <span class="accent">Cloudflare</span> desde cero</h1>
+  <p class="lead">
+    Recorrido práctico construyendo dos proyectos reales: un sitio estático en Cloudflare Pages
+    y un acortador de URLs con Workers + KV. Este documento resume qué se hizo, cómo se hizo
+    y qué conceptos quedaron aprendidos.
+  </p>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="label">Autor</div>
+      <div class="value">Dario Pacheco</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Cuenta Cloudflare</div>
+      <div class="value">dpacheco65@gmail.com</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Proyectos completados</div>
+      <div class="value">2 de 2</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Fecha</div>
+      <div class="value">Mayo 2026</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#proyecto-1">Proyecto 1 — Sitio estático en Cloudflare Pages</a></li>
+    <li><a href="#proyecto-2">Proyecto 2 — Acortador de URLs con Workers + KV</a></li>
+    <li><a href="#conceptos">Conceptos clave del ecosistema Cloudflare</a></li>
+    <li><a href="#comandos">Comandos útiles de Wrangler</a></li>
+    <li><a href="#seguridad">Buenas prácticas de seguridad aprendidas</a></li>
+    <li><a href="#siguiente">Próximos pasos sugeridos</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================== -->
+<h2 id="proyecto-1">1. Sitio estático en Cloudflare Pages</h2>
+
+<div class="card success">
+  <span class="badge green">Completado</span>
+  <span class="badge">HTML / CSS / JS</span>
+  <span class="badge muted">Sin build step</span>
+  <h3 style="margin-top:1rem">Resultado</h3>
+  <table>
+    <tr><th>URL en producción</th><td><a href="https://practica-cloudflare.dpacheco65.workers.dev" target="_blank">practica-cloudflare.dpacheco65.workers.dev</a></td></tr>
+    <tr><th>Repositorio</th><td><a href="https://github.com/dpacheco65/practica-cloudflare" target="_blank">github.com/dpacheco65/practica-cloudflare</a></td></tr>
+    <tr><th>Tipo de deploy</th><td>Conectado a GitHub (deploy automático en cada push a <code>main</code>)</td></tr>
+    <tr><th>Archivos</th><td><code>index.html</code>, <code>styles.css</code>, <code>script.js</code>, <code>README.md</code></td></tr>
+  </table>
+</div>
+
+<h3>Pasos realizados</h3>
+<ol>
+  <li class="step">Crear archivos HTML/CSS/JS en el directorio local.</li>
+  <li class="step">Inicializar git y hacer primer commit en rama <code>main</code>.</li>
+  <li class="step">Crear repositorio público en GitHub y pushear el código.</li>
+  <li class="step">En el dashboard de Cloudflare: <strong>Workers &amp; Pages → Create → Pages → Connect to Git</strong>.</li>
+  <li class="step">Autorizar la app de Cloudflare en GitHub y seleccionar el repo.</li>
+  <li class="step">Configurar el proyecto sin framework, sin build command, output dir <code>/</code>.</li>
+  <li class="step">Verificar deploy automático haciendo un cambio + <code>git push</code>.</li>
+</ol>
+
+<h3>Diagrama del flujo</h3>
+<div class="diagram"><span class="hl-green">GitHub repo (main)</span>  ──push──▶  <span class="hl-accent">Cloudflare Pages</span>  ──serve──▶  <span class="hl-blue">*.workers.dev</span>
+    tu código              build automático + deploy        red global edge</div>
+
+<h3>Aprendizajes clave</h3>
+<ul>
+  <li><strong>Pages</strong> es hosting estático en la red global de Cloudflare con CI/CD gratis.</li>
+  <li>Cada <code>push</code> a la rama de producción dispara un nuevo deploy.</li>
+  <li>Pushes a otras ramas generan <strong>preview deploys</strong> con URL única (útil para revisar antes de mergear).</li>
+  <li>El SSL/HTTPS, CDN global y headers básicos vienen incluidos sin configurar nada.</li>
+  <li>Si el sitio es HTML puro: sin <em>build command</em> y output dir <code>/</code>. Si usa Astro/Next/etc, se configura el build.</li>
+  <li>Cloudflare unificó Pages con Workers (Static Assets): por eso el dominio resultó <code>*.workers.dev</code> en vez del histórico <code>*.pages.dev</code>. Funcionalmente equivalente.</li>
+</ul>
+
+<!-- ============================================== -->
+<h2 id="proyecto-2">2. Acortador de URLs con Workers + KV</h2>
+
+<div class="card success">
+  <span class="badge green">Completado</span>
+  <span class="badge">JavaScript</span>
+  <span class="badge">Workers</span>
+  <span class="badge">KV</span>
+  <h3 style="margin-top:1rem">Resultado</h3>
+  <table>
+    <tr><th>URL en producción</th><td><a href="https://acortador-url.dpacheco65.workers.dev" target="_blank">acortador-url.dpacheco65.workers.dev</a></td></tr>
+    <tr><th>Repositorio</th><td><a href="https://github.com/dpacheco65/acortador-url" target="_blank">github.com/dpacheco65/acortador-url</a></td></tr>
+    <tr><th>KV namespace</th><td><code>LINKS</code> &nbsp; <span class="badge muted">id: 1e8d4f8c…ba61</span></td></tr>
+    <tr><th>Auth</th><td>Token guardado como <em>secret</em> en Cloudflare (write-only)</td></tr>
+    <tr><th>Tests pasados</th><td>8 en local + 5 en producción</td></tr>
+  </table>
+</div>
+
+<h3>Endpoints del Worker</h3>
+<table>
+  <thead>
+    <tr><th>Método</th><th>Path</th><th>Descripción</th><th>Auth</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>GET</code></td><td><code>/</code></td><td>Página HTML con formulario para crear links</td><td>—</td></tr>
+    <tr><td><code>GET</code></td><td><code>/:slug</code></td><td>Redirige 302 a la URL original</td><td>—</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/shorten</code></td><td>Crea un slug (random o personalizado)</td><td><code>Bearer</code></td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/info/:slug</code></td><td>Devuelve la URL y fecha de creación sin redirigir</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h3>Códigos de respuesta implementados</h3>
+<table>
+  <thead><tr><th>Status</th><th>Cuándo</th><th>Body</th></tr></thead>
+  <tbody>
+    <tr><td><code>201</code></td><td>Link creado correctamente</td><td><code>{slug, short_url, target, created}</code></td></tr>
+    <tr><td><code>302</code></td><td>Redirect a la URL original</td><td>Header <code>Location</code></td></tr>
+    <tr><td><code>400</code></td><td>URL o slug inválido</td><td><code>{error, hint}</code></td></tr>
+    <tr><td><code>401</code></td><td>Token ausente o incorrecto</td><td><code>{error: "unauthorized"}</code></td></tr>
+    <tr><td><code>404</code></td><td>Slug no existe</td><td>HTML 404 amigable</td></tr>
+    <tr><td><code>409</code></td><td>Slug ya en uso</td><td><code>{error: "slug_taken"}</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Diagrama del flujo</h3>
+<div class="diagram">Usuario              <span class="hl-accent">Cloudflare Worker</span                                <span class="hl-blue">KV (LINKS)</span>
+   │                       │                                          │
+   │  POST /api/shorten    │                                          │
+   │ ─────────────────────▶│                                          │
+   │  Authorization: Bearer│  valida token + URL                      │
+   │                       │  genera slug (random o usa el dado)      │
+   │                       │  KV.put(slug, {url, created})            │
+   │                       │ ────────────────────────────────────────▶│
+   │                       │                                          │
+   │   201 {slug, short_url, target}                                  │
+   │ ◀─────────────────────│                                          │
+   │                       │                                          │
+   │  GET /:slug           │                                          │
+   │ ─────────────────────▶│  KV.get(slug)                            │
+   │                       │ ────────────────────────────────────────▶│
+   │                       │ ◀───── {url, created} ───────────────────│
+   │   302 Location: url   │                                          │
+   │ ◀─────────────────────│                                          │</div>
+
+<h3>Setup que se realizó</h3>
+<pre><code># 1. Crear estructura
+mkdir AcortadorURL && cd AcortadorURL
+npm init -y
+
+# 2. Instalar y loguear Wrangler
+npm install -D wrangler@4
+npx wrangler login                    # abre navegador para autorizar
+
+# 3. Crear KV namespace
+npx wrangler kv namespace create LINKS
+# → guardar el id en wrangler.toml
+
+# 4. Setear secret de producción
+npx wrangler secret put AUTH_TOKEN    # pide ingresar valor (no se ve)
+
+# 5. Crear .dev.vars (para dev local, NUNCA commitearlo)
+echo 'AUTH_TOKEN="..."' > .dev.vars
+
+# 6. Probar local
+npm run dev                            # http://localhost:8787
+
+# 7. Deploy a producción
+npm run deploy</code></pre>
+
+<h3>Aprendizajes clave</h3>
+<ul>
+  <li><strong>Workers</strong> = código JS ejecutándose en el edge global, no solo servir archivos.</li>
+  <li><strong>KV</strong> = almacenamiento clave-valor distribuido, consultado con <code>env.LINKS.get/put</code>.</li>
+  <li><strong>Bindings</strong>: <code>wrangler.toml</code> conecta recursos (KV, vars, secrets) al código vía <code>env.X</code>. Sin red, sin SDK — el binding es la interfaz.</li>
+  <li><strong>Wrangler dev</strong> simula todo el entorno (incluyendo KV) en local sin tocar producción ni gastar requests.</li>
+  <li><strong>Wrangler deploy</strong> sube el código a la red global en ~3 segundos.</li>
+  <li>La latencia es muy baja porque el código corre en el datacenter de Cloudflare más cercano al usuario.</li>
+</ul>
+
+<!-- ============================================== -->
+<h2 id="conceptos">3. Conceptos clave del ecosistema Cloudflare</h2>
+
+<table>
+  <thead><tr><th>Servicio</th><th>Qué es</th><th>Cuándo usarlo</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Pages</strong></td><td>Hosting estático con CI/CD desde Git</td><td>Sitios HTML/SPAs/SSG (Astro, Next static)</td></tr>
+    <tr><td><strong>Workers</strong></td><td>JS/TS serverless en el edge</td><td>APIs, lógica dinámica, proxies, middleware</td></tr>
+    <tr><td><strong>KV</strong></td><td>Storage clave-valor distribuido</td><td>Config, sesiones, caché simple, lookups</td></tr>
+    <tr><td><strong>D1</strong></td><td>SQLite serverless en el edge</td><td>Datos relacionales con SQL</td></tr>
+    <tr><td><strong>R2</strong></td><td>Object storage S3-compatible</td><td>Imágenes, archivos, backups (sin egress fees)</td></tr>
+    <tr><td><strong>Durable Objects</strong></td><td>Estado coordinado con consistencia fuerte</td><td>Chat, rooms, contadores, locks</td></tr>
+    <tr><td><strong>Queues</strong></td><td>Mensajería asíncrona</td><td>Procesamiento background, fan-out</td></tr>
+    <tr><td><strong>Workers AI</strong></td><td>Modelos LLM/vision/audio en el edge</td><td>Resúmenes, embeddings, clasificación</td></tr>
+  </tbody>
+</table>
+
+<h3>Diferencia clave: vars vs secrets</h3>
+<table>
+  <thead><tr><th></th><th><code>[vars]</code> en wrangler.toml</th><th>Secrets (<code>wrangler secret put</code>)</th></tr></thead>
+  <tbody>
+    <tr><th>Dónde se guarda</th><td>En el archivo, commiteado a git</td><td>Encriptado en Cloudflare</td></tr>
+    <tr><th>Visibilidad</th><td>Pública (cualquiera con acceso al repo)</td><td>Solo el nombre es visible, el valor nunca</td></tr>
+    <tr><th>Cómo se accede en código</th><td><code>env.MI_VAR</code></td><td><code>env.MI_SECRET</code> (idéntico)</td></tr>
+    <tr><th>Para qué</th><td>Configuración no sensible (puerto, flags, URLs públicas)</td><td>Tokens, API keys, contraseñas</td></tr>
+    <tr><th>Reemplazo en dev local</th><td>Override en sección <code>[env.dev.vars]</code></td><td>Archivo <code>.dev.vars</code> (gitignored)</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================== -->
+<h2 id="comandos">4. Comandos útiles de Wrangler</h2>
+
+<table>
+  <thead><tr><th>Comando</th><th>Para qué</th></tr></thead>
+  <tbody>
+    <tr><td><code>npx wrangler login</code></td><td>Autenticar contra tu cuenta de Cloudflare</td></tr>
+    <tr><td><code>npx wrangler whoami</code></td><td>Ver con qué cuenta estás logueado</td></tr>
+    <tr><td><code>npx wrangler dev</code></td><td>Levantar el Worker en local con bindings simulados</td></tr>
+    <tr><td><code>npx wrangler deploy</code></td><td>Subir el Worker a producción</td></tr>
+    <tr><td><code>npx wrangler tail</code></td><td>Ver logs en vivo del Worker en producción</td></tr>
+    <tr><td><code>npx wrangler kv namespace create &lt;name&gt;</code></td><td>Crear KV namespace</td></tr>
+    <tr><td><code>npx wrangler kv namespace list</code></td><td>Listar KV namespaces</td></tr>
+    <tr><td><code>npx wrangler kv key put --binding=&lt;NAME&gt; &lt;key&gt; &lt;value&gt;</code></td><td>Escribir en KV desde la CLI</td></tr>
+    <tr><td><code>npx wrangler kv key get --binding=&lt;NAME&gt; &lt;key&gt;</code></td><td>Leer de KV desde la CLI</td></tr>
+    <tr><td><code>npx wrangler secret put &lt;NAME&gt;</code></td><td>Crear/rotar un secret (interactivo)</td></tr>
+    <tr><td><code>npx wrangler secret list</code></td><td>Listar nombres de secrets (sin valores)</td></tr>
+    <tr><td><code>npx wrangler secret delete &lt;NAME&gt;</code></td><td>Borrar un secret</td></tr>
+    <tr><td><code>npx wrangler deployments list</code></td><td>Ver historial de deploys</td></tr>
+    <tr><td><code>npx wrangler rollback</code></td><td>Volver a un deploy anterior</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================== -->
+<h2 id="seguridad">5. Buenas prácticas de seguridad aprendidas</h2>
+
+<div class="card warn">
+  <h3 style="margin-top:0">Lo que hicimos bien</h3>
+  <ul>
+    <li class="check"><code>.dev.vars</code> en <code>.gitignore</code> — el token de desarrollo nunca llega a GitHub.</li>
+    <li class="check">Token de producción guardado como <em>secret</em> en Cloudflare (encriptado, write-only).</li>
+    <li class="check">Endpoint de creación (<code>POST /api/shorten</code>) protegido con <code>Authorization: Bearer</code>.</li>
+    <li class="check">Validación de input: URL debe ser <code>http://</code> o <code>https://</code>, slug solo <code>[A-Za-z0-9_-]</code>.</li>
+    <li class="check">Verificación de slug duplicado antes de escribir en KV (evita sobreescribir links existentes).</li>
+    <li class="check">Token generado con <code>openssl rand -hex 24</code> (96 bits de entropía, no adivinable).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Mejoras posibles para uso real</h3>
+  <ul>
+    <li>Usar <strong>Cloudflare Turnstile</strong> en el formulario público para evitar bots.</li>
+    <li>Agregar <strong>rate limiting</strong> al endpoint de creación (Workers tiene API nativa para esto).</li>
+    <li>Validar que la URL destino no sea maliciosa (consultar Safe Browsing o lista propia).</li>
+    <li>Múltiples tokens con roles (admin vs usuario) en vez de uno único compartido.</li>
+    <li>Audit log de cada creación en un segundo KV o D1 (quién/cuándo).</li>
+    <li>Rotar el <code>AUTH_TOKEN</code> periódicamente (<code>wrangler secret put AUTH_TOKEN</code>).</li>
+  </ul>
+</div>
+
+<!-- ============================================== -->
+<h2 id="siguiente">6. Próximos pasos sugeridos</h2>
+
+<ol>
+  <li>
+    <strong>API CRUD con Workers + D1</strong> — Reemplazar KV por SQLite serverless. Aprender migraciones, queries parametrizadas, índices. Buen siguiente paso natural.
+  </li>
+  <li>
+    <strong>Storage de imágenes con R2</strong> — Upload, listado, signed URLs. Saltar de "claves" a "archivos".
+  </li>
+  <li>
+    <strong>Extender el acortador</strong>:
+    <ul>
+      <li>Analytics de clicks (contar accesos por slug en KV o D1).</li>
+      <li>Expiración automática de links (TTL en KV).</li>
+      <li>Panel admin para listar/borrar/editar.</li>
+      <li>Dominio propio en vez de <code>workers.dev</code>.</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Chat en tiempo real con Durable Objects</strong> — Saltar al modelo de estado coordinado.
+  </li>
+  <li>
+    <strong>App con IA en el edge</strong> — Usar Workers AI + Vectorize para búsqueda semántica.
+  </li>
+</ol>
+
+<footer>
+  Informe generado al cierre del segundo proyecto de práctica · Cloudflare Workers, Pages y KV
+</footer>
+
+</div>
+</body>
+</html>
