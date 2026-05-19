@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Informe — Chat AI con Cloudflare Workers AI</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #141821;
+    --surface-2: #1c2230;
+    --text: #e8ecf1;
+    --muted: #8a93a6;
+    --accent: #f6821f;
+    --accent-dim: rgba(246, 130, 31, 0.15);
+    --border: #2a3142;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.15);
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.75rem;
+    color: var(--purple);
+    margin: 0 0 0.4rem;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  h1 .accent { color: var(--accent); }
+  h1 .purple { color: var(--purple); }
+  h2 {
+    font-size: 1.5rem;
+    margin: 3rem 0 1rem;
+    color: var(--accent);
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.15rem; margin: 1.8rem 0 0.6rem; }
+  p { margin: 0 0 1rem; }
+  .lead { color: var(--muted); font-size: 1.05rem; max-width: 65ch; }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .meta-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius);
+  }
+  .meta-item .label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+  }
+  .meta-item .value { font-weight: 600; word-break: break-word; }
+  .meta-item .value code { font-size: 0.85em; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card.purple { border-left: 3px solid var(--purple); }
+  .card.warn { border-left: 3px solid var(--accent); }
+  .card.green { border-left: 3px solid var(--green); }
+  .card.blue { border-left: 3px solid var(--blue); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { font-size: 0.88em; }
+
+  code {
+    background: var(--surface-2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.92em;
+    font-family: "Consolas", "Monaco", monospace;
+  }
+  pre {
+    background: #06080c;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 1rem 0;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin-bottom: 0.4rem; }
+  li strong { color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+  }
+  .badge.green { background: rgba(74, 222, 128, 0.12); color: var(--green); border-color: var(--green); }
+  .badge.blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: var(--blue); }
+  .badge.purple { background: var(--purple-dim); color: var(--purple); border-color: var(--purple); }
+  .badge.muted { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
+
+  a { color: var(--accent); }
+  a:hover { text-decoration: underline; }
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre;
+    color: var(--muted);
+    overflow-x: auto;
+  }
+  .diagram .hl-accent { color: var(--accent); }
+  .diagram .hl-green { color: var(--green); }
+  .diagram .hl-blue { color: var(--blue); }
+  .diagram .hl-purple { color: var(--purple); }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .toc ol { margin: 0.5rem 0 0; }
+  .toc a { color: var(--text); }
+
+  .kbd {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85em;
+  }
+
+  .check::before { content: "[OK] "; color: var(--green); font-weight: 600; }
+  .x::before { content: "[X] "; color: var(--red); font-weight: 600; }
+  .step::before { content: ">> "; color: var(--accent); font-weight: 600; }
+  .note::before { content: "i "; color: var(--blue); font-weight: 600; }
+
+  .models {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+    margin: 1rem 0;
+  }
+  .model {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+  }
+  .model.active { border-color: var(--accent); background: linear-gradient(135deg, var(--surface), var(--accent-dim)); }
+  .model .name { font-weight: 600; margin-bottom: 0.2rem; }
+  .model .id { font-family: "Consolas", monospace; font-size: 0.78rem; color: var(--purple); word-break: break-all; margin-bottom: 0.3rem; }
+  .model .desc { color: var(--muted); font-size: 0.85rem; margin: 0; }
+  .model .tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <p class="eyebrow">Informe de proyecto · Cuarto del recorrido</p>
+  <h1>Chatbot con <span class="purple">Workers AI</span><br>+ Llama 3.1 en el edge</h1>
+  <p class="lead">
+    Documento ejecutivo del proyecto: arquitectura, decisiones, endpoints, streaming SSE,
+    catálogo de modelos disponibles y cómo usarlo en el día a día.
+    El cuarto y más complejo de los proyectos del recorrido.
+  </p>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="label">URL en producción</div>
+      <div class="value"><a href="https://chat-ai.dpacheco65.workers.dev" target="_blank">chat-ai.dpacheco65.workers.dev</a></div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Repositorio</div>
+      <div class="value"><a href="https://github.com/dpacheco65/chat-ai" target="_blank">github.com/dpacheco65/chat-ai</a></div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Modelo en uso</div>
+      <div class="value"><code>llama-3.1-8b-instruct</code></div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Streaming</div>
+      <div class="value">SSE token a token</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#resumen">Resumen ejecutivo</a></li>
+    <li><a href="#stack">Stack técnico</a></li>
+    <li><a href="#endpoints">Endpoints del Worker</a></li>
+    <li><a href="#inferencia">Cómo se llama al modelo</a></li>
+    <li><a href="#streaming">El streaming SSE en detalle</a></li>
+    <li><a href="#flujo">Flujo end-to-end</a></li>
+    <li><a href="#frontend">Frontend (cómo funciona)</a></li>
+    <li><a href="#modelos">Catálogo de modelos disponibles</a></li>
+    <li><a href="#usar">Cómo usarlo</a></li>
+    <li><a href="#aprendizajes">Aprendizajes clave</a></li>
+    <li><a href="#seguridad">Seguridad</a></li>
+    <li><a href="#limitaciones">Limitaciones del modelo</a></li>
+    <li><a href="#mejoras">Mejoras posibles</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================== -->
+<h2 id="resumen">1. Resumen ejecutivo</h2>
+
+<div class="card purple">
+  <span class="badge green">Completado</span>
+  <span class="badge purple">Workers AI</span>
+  <span class="badge">Llama 3.1 8B</span>
+  <span class="badge muted">SSE Streaming</span>
+  <span class="badge muted">Stateless</span>
+
+  <h3 style="margin-top:1rem">Qué se construyó</h3>
+  <p style="color:var(--muted);margin:0">
+    Un chatbot conversacional accesible vía web. El usuario escribe mensajes en una UI minimalista,
+    el Worker los manda a Llama 3.1 con streaming activado, y los tokens generados por el modelo
+    aparecen palabra por palabra en pantalla. El historial de la conversación se guarda en
+    <code>localStorage</code> del navegador (el server no guarda nada).
+  </p>
+</div>
+
+<h3>Métricas y características</h3>
+<table>
+  <tbody>
+    <tr><th>Modelo default</th><td><code>@cf/meta/llama-3.1-8b-instruct</code></td></tr>
+    <tr><th>Tamaño máx por mensaje</th><td>4000 caracteres</td></tr>
+    <tr><th>Mensajes máx por turno</th><td>30 (anti-loop de cliente)</td></tr>
+    <tr><th>Tokens máx por respuesta</th><td>1024</td></tr>
+    <tr><th>Auth de escritura</th><td>Bearer token (secret en Cloudflare)</td></tr>
+    <tr><th>Latencia primer token (TTFT)</th><td>~300-700 ms</td></tr>
+    <tr><th>Throughput</th><td>~40-80 tokens/segundo</td></tr>
+    <tr><th>Persistencia server</th><td>Cero. Todo en <code>localStorage</code></td></tr>
+    <tr><th>Costo</th><td>Free tier de Workers AI (sin tarjeta)</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================== -->
+<h2 id="stack">2. Stack técnico</h2>
+
+<table>
+  <thead><tr><th>Capa</th><th>Tecnología</th><th>Rol</th></tr></thead>
+  <tbody>
+    <tr><td>Frontend</td><td>HTML + CSS + Vanilla JS</td><td>UI del chat, lectura del stream con <code>ReadableStream.getReader()</code></td></tr>
+    <tr><td>Runtime</td><td>Cloudflare Workers</td><td>Recibe POST, valida, llama al modelo, devuelve el stream</td></tr>
+    <tr><td>Modelo</td><td>Workers AI (Llama 3.1 8B Instruct)</td><td>Inferencia en GPU del edge</td></tr>
+    <tr><td>Persistencia cliente</td><td>localStorage del navegador</td><td>Guarda historial entre recargas</td></tr>
+    <tr><td>Persistencia server</td><td>Ninguna</td><td>Por diseño: stateless puro</td></tr>
+    <tr><td>Auth</td><td>Bearer token simple</td><td>Token generado con <code>openssl rand -hex 24</code></td></tr>
+    <tr><td>Transporte de respuesta</td><td>Server-Sent Events (SSE)</td><td><code>text/event-stream</code> con chunks JSON</td></tr>
+  </tbody>
+</table>
+
+<h3>Configuración (wrangler.toml)</h3>
+<pre><code>name = "chat-ai"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+
+[ai]
+binding = "AI"                  # Workers AI binding (sin recursos previos)
+
+[vars]
+MODEL = "@cf/meta/llama-3.1-8b-instruct"
+SYSTEM_PROMPT = "Sos un asistente conciso y util en espanol rioplatense..."
+
+# AUTH_TOKEN se setea con: npx wrangler secret put AUTH_TOKEN</code></pre>
+
+<!-- ============================================== -->
+<h2 id="endpoints">3. Endpoints del Worker</h2>
+
+<table>
+  <thead><tr><th>Método</th><th>Path</th><th>Descripción</th><th>Auth</th><th>Tipo de respuesta</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>GET</code></td>
+      <td><code>/</code></td>
+      <td>Sirve el frontend HTML (chat UI)</td>
+      <td>—</td>
+      <td><code>text/html</code></td>
+    </tr>
+    <tr>
+      <td><code>POST</code></td>
+      <td><code>/api/chat</code></td>
+      <td>Recibe <code>{messages:[{role, content},...]}</code>, devuelve stream del modelo</td>
+      <td><code>Bearer</code></td>
+      <td><code>text/event-stream</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Códigos de respuesta</h3>
+<table>
+  <thead><tr><th>Status</th><th>Cuándo</th><th>Body</th></tr></thead>
+  <tbody>
+    <tr><td><code>200</code></td><td>Inferencia exitosa</td><td>Stream SSE con tokens</td></tr>
+    <tr><td><code>400</code></td><td>JSON inválido, mensajes vacíos, roles incorrectos, contenido muy largo</td><td><code>{error, hint?}</code></td></tr>
+    <tr><td><code>401</code></td><td>Token ausente o incorrecto</td><td><code>{error: "unauthorized"}</code></td></tr>
+    <tr><td><code>404</code></td><td>Path no reconocido</td><td><code>{error: "not_found", path}</code></td></tr>
+    <tr><td><code>405</code></td><td>Método no permitido en <code>/api/chat</code></td><td><code>{error: "method_not_allowed"}</code></td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================== -->
+<h2 id="inferencia">4. Cómo se llama al modelo</h2>
+
+<p>
+  Workers AI expone los modelos a través del binding <code>env.AI</code>. No hay que importar SDKs,
+  no hay que manejar API keys, no hay que crear recursos previos: solo declarar el binding y usarlo.
+</p>
+
+<pre><code>const stream = await env.AI.run(
+  "@cf/meta/llama-3.1-8b-instruct",
+  {
+    messages: [
+      { role: "system", content: env.SYSTEM_PROMPT },
+      { role: "user",   content: "Que es Cloudflare Workers?" }
+    ],
+    stream: true,
+    max_tokens: 1024,
+  }
+);
+
+return new Response(stream, {
+  headers: {
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+  }
+});</code></pre>
+
+<h3>Parámetros importantes</h3>
+<table>
+  <tbody>
+    <tr><th><code>messages</code></th><td>Array con la conversación. Cada mensaje tiene <code>role</code> (<code>system</code> / <code>user</code> / <code>assistant</code>) y <code>content</code>.</td></tr>
+    <tr><th><code>stream</code></th><td><code>true</code> = devuelve un <code>ReadableStream</code> en formato SSE. <code>false</code> = devuelve el objeto JSON completo cuando termina.</td></tr>
+    <tr><th><code>max_tokens</code></th><td>Límite duro de tokens en la respuesta. Llama corta cuando alcanza esto.</td></tr>
+    <tr><th><code>temperature</code></th><td>(Opcional) 0.0 = determinístico, 1.0 = creativo. Default ~0.7.</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================== -->
+<h2 id="streaming">5. El streaming SSE en detalle</h2>
+
+<p>
+  Cuando <code>stream: true</code>, Workers AI devuelve un stream que sigue el formato
+  Server-Sent Events. Cada evento es una línea que empieza con <code>data:</code> seguida
+  de un JSON, terminada en doble newline.
+</p>
+
+<h3>Lo que viaja por el cable</h3>
+<pre><code>data: {"response": "Cloud"}
+
+data: {"response": "flare"}
+
+data: {"response": " Workers"}
+
+data: {"response": " es"}
+
+  ... más tokens ...
+
+data: {"usage": {"prompt_tokens": 85, "completion_tokens": 42}}
+
+data: [DONE]</code></pre>
+
+<h3>Cómo el frontend lo lee</h3>
+<pre><code>const r = await fetch("/api/chat", { method: "POST", ... });
+const reader = r.body.getReader();
+const decoder = new TextDecoder();
+let buffer = "";
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+  const lines = buffer.split("\n");
+  buffer = lines.pop();
+  for (const line of lines) {
+    if (!line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (payload === "[DONE]") break;
+    const json = JSON.parse(payload);
+    if (json.response) {
+      // Concatenar al mensaje del assistant en el DOM
+      body.textContent += json.response;
+    }
+  }
+}</code></pre>
+
+<p class="note" style="color:var(--muted)">
+  El <code>buffer</code> se mantiene entre lecturas porque un chunk de red puede cortar
+  un evento por la mitad. Sólo procesamos líneas completas (terminadas en <code>\n</code>).
+</p>
+
+<!-- ============================================== -->
+<h2 id="flujo">6. Flujo end-to-end</h2>
+
+<div class="diagram"><span class="hl-blue">Usuario tipea</span> "Que es Cloudflare?"
+       │
+       ▼
+<span class="hl-blue">Navegador</span>: push a history[], POST /api/chat con {messages: history}
+       │
+       ▼
+<span class="hl-accent">Worker</span>: requireAuth() → validar body → prepend system prompt
+       │
+       ▼
+<span class="hl-accent">Worker</span>: env.AI.run("@cf/meta/llama-3.1-8b-instruct", { messages, stream: true })
+       │
+       ▼
+<span class="hl-purple">Llama 3.1 (GPU)</span>: procesa contexto completo
+       │
+       │   genera token "Cloud"  ────▶  data: {"response":"Cloud"}
+       │   genera token "flare"  ────▶  data: {"response":"flare"}
+       │   genera token " es"    ────▶  data: {"response":" es"}
+       │   ...
+       │   termina               ────▶  data: [DONE]
+       │
+       ▼
+<span class="hl-green">Worker</span>: passthrough del stream al cliente (no acumula)
+       │
+       ▼
+<span class="hl-blue">Navegador</span>: lee chunks, va concatenando al mensaje del assistant en el DOM
+       │
+       ▼
+<span class="hl-blue">Navegador</span>: al [DONE] guarda assistant message en history[] + localStorage</div>
+
+<p style="color:var(--muted)">
+  Diagrama interactivo con SVG: <a href="/flujo-ai">/flujo-ai</a>
+</p>
+
+<!-- ============================================== -->
+<h2 id="frontend">7. Frontend (cómo funciona el HTML)</h2>
+
+<p>
+  El HTML está incrustado en el Worker (en <code>homePage()</code>). No hay archivos separados:
+  todo se sirve desde el endpoint <code>GET /</code>. Esto simplifica el deploy porque
+  un solo Worker tiene frontend + API.
+</p>
+
+<h3>Estado en el cliente</h3>
+<table>
+  <thead><tr><th>Variable</th><th>Dónde vive</th><th>Para qué</th></tr></thead>
+  <tbody>
+    <tr><td><code>history</code></td><td>localStorage <code>chat-history</code></td><td>Array de mensajes. Se serializa como JSON.</td></tr>
+    <tr><td>Token</td><td>localStorage <code>token-chat</code></td><td>El Bearer token, persistido para no escribirlo cada vez.</td></tr>
+    <tr><td><code>busy</code></td><td>Variable en memoria</td><td>Flag para evitar enviar mientras hay un request en curso.</td></tr>
+  </tbody>
+</table>
+
+<h3>Flujo de la UI</h3>
+<ol>
+  <li>Al cargar la página, lee <code>localStorage</code> y renderiza los mensajes previos.</li>
+  <li>Al apretar Enter, agrega el mensaje del usuario al array y lo renderiza inmediatamente.</li>
+  <li>Hace POST y muestra un placeholder "pensando" con animación.</li>
+  <li>Cuando llegan los primeros bytes, reemplaza el placeholder por un mensaje vacío y va apendeando texto.</li>
+  <li>Al <code>[DONE]</code>, marca el mensaje como completo, lo guarda en <code>localStorage</code>.</li>
+  <li>Habilita de nuevo el input y devuelve foco al textarea.</li>
+</ol>
+
+<!-- ============================================== -->
+<h2 id="modelos">8. Catálogo de modelos disponibles</h2>
+
+<p>
+  Workers AI expone decenas de modelos open-source. Se cambia de modelo
+  sin tocar el código: solo editar <code>MODEL</code> en <code>wrangler.toml</code> y redeployar.
+</p>
+
+<div class="models">
+  <div class="model active">
+    <span class="tag">En uso</span>
+    <div class="name">Llama 3.1 8B Instruct</div>
+    <div class="id">@cf/meta/llama-3.1-8b-instruct</div>
+    <p class="desc">Buen balance velocidad / calidad. Default del proyecto. Para chat conversacional general.</p>
+  </div>
+
+  <div class="model">
+    <span class="tag">Más capaz</span>
+    <div class="name">Llama 3.3 70B Instruct (fp8 fast)</div>
+    <div class="id">@cf/meta/llama-3.3-70b-instruct-fp8-fast</div>
+    <p class="desc">Modelo 70B cuantizado. Mejor razonamiento, código y consultas complejas. Consume más Neurons.</p>
+  </div>
+
+  <div class="model">
+    <span class="tag">Más rápido</span>
+    <div class="name">Llama 3.2 3B Instruct</div>
+    <div class="id">@cf/meta/llama-3.2-3b-instruct</div>
+    <p class="desc">Modelo chico. Respuestas más veloces y menos costo. Bueno para tareas simples / clasificación.</p>
+  </div>
+
+  <div class="model">
+    <span class="tag">Visión</span>
+    <div class="name">Llama 3.2 11B Vision Instruct</div>
+    <div class="id">@cf/meta/llama-3.2-11b-vision-instruct</div>
+    <p class="desc">Acepta imágenes además de texto. Le pasás una foto en base64 y te describe / responde sobre ella.</p>
+  </div>
+
+  <div class="model">
+    <span class="tag">Embeddings</span>
+    <div class="name">BGE Base EN</div>
+    <div class="id">@cf/baai/bge-base-en-v1.5</div>
+    <p class="desc">Convierte texto en vectores (768 dimensiones). Base para búsqueda semántica y RAG con Vectorize.</p>
+  </div>
+
+  <div class="model">
+    <span class="tag">Text-to-image</span>
+    <div class="name">Stable Diffusion XL Lightning</div>
+    <div class="id">@cf/bytedance/stable-diffusion-xl-lightning</div>
+    <p class="desc">Generación de imágenes. Prompt en inglés, devuelve PNG. Muy rápido (4-8 pasos).</p>
+  </div>
+</div>
+
+<h3>Cómo cambiar de modelo sin redeployar código</h3>
+<ol>
+  <li class="step">Editar <code>wrangler.toml</code>:</li>
+</ol>
+<pre><code>[vars]
+MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"   # nuevo modelo</code></pre>
+<ol start="2">
+  <li class="step">Ejecutar <code>npx wrangler deploy</code> (solo actualiza las vars, no recompila).</li>
+  <li class="step">El próximo request al chat ya usa el modelo nuevo.</li>
+</ol>
+
+<!-- ============================================== -->
+<h2 id="usar">9. Cómo usarlo</h2>
+
+<h3>Desde el navegador (más simple)</h3>
+<ol>
+  <li class="step">Abrir <a href="https://chat-ai.dpacheco65.workers.dev" target="_blank">chat-ai.dpacheco65.workers.dev</a></li>
+  <li class="step">Pegar el AUTH_TOKEN en el campo arriba a la derecha (queda guardado en localStorage)</li>
+  <li class="step">Escribir el mensaje y apretar <span class="kbd">Enter</span> (o <span class="kbd">Shift</span>+<span class="kbd">Enter</span> para newline)</li>
+  <li class="step">Ver la respuesta aparecer palabra por palabra</li>
+  <li class="step">"Limpiar" arriba para empezar una conversación nueva</li>
+</ol>
+
+<h3>Desde la línea de comandos (PowerShell)</h3>
+<pre><code>$token = "TU_AUTH_TOKEN"
+$body = @{
+  messages = @(
+    @{ role = "user"; content = "Holaa, decime algo en una palabra" }
+  )
+} | ConvertTo-Json -Depth 4
+
+Invoke-RestMethod -Method Post `
+  -Uri "https://chat-ai.dpacheco65.workers.dev/api/chat" `
+  -Headers @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" } `
+  -Body $body</code></pre>
+
+<h3>Desde curl (con streaming visible)</h3>
+<pre><code>curl -N -X POST https://chat-ai.dpacheco65.workers.dev/api/chat \
+  -H "Authorization: Bearer TU_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Hola"}]}'</code></pre>
+
+<p style="color:var(--muted);font-size:0.9rem">
+  El flag <code>-N</code> desactiva el buffer de curl para ver los tokens llegar en vivo.
+</p>
+
+<!-- ============================================== -->
+<h2 id="aprendizajes">10. Aprendizajes clave</h2>
+
+<ul>
+  <li><strong>Workers AI binding</strong>: se declara con <code>[ai]</code> en <code>wrangler.toml</code>, sin necesidad de crear recursos previos (a diferencia de KV/D1/R2).</li>
+  <li><strong>Inference con LLM</strong>: <code>env.AI.run(model, opts)</code> — interfaz tipo OpenAI Chat Completions, con <code>messages</code>, <code>stream</code>, <code>max_tokens</code>, etc.</li>
+  <li><strong>Mensajes con roles</strong>: <code>system</code> (instrucción al modelo), <code>user</code> (mensajes de la persona), <code>assistant</code> (respuestas previas del modelo). El historial es cómo se mantiene contexto.</li>
+  <li><strong>System prompt como var</strong>: ponerlo en <code>[vars]</code> permite cambiar la personalidad del bot sin tocar código (solo <code>wrangler deploy</code>).</li>
+  <li><strong>Streaming SSE</strong>: el server emite <code>data: {json}\n\n</code>. El cliente usa <code>ReadableStream.getReader()</code> + <code>TextDecoder</code> + buffer entre chunks.</li>
+  <li><strong>Stream passthrough</strong>: el Worker no acumula los tokens. Toma el stream que devuelve <code>env.AI.run()</code> y lo retorna tal cual en la <code>Response</code>.</li>
+  <li><strong>Neurons</strong>: unidad de costo de Workers AI. Plan free incluye una quota diaria suficiente para uso de prueba.</li>
+  <li><strong>Stateless puro</strong>: cero estado en server, todo el historial en <code>localStorage</code> del cliente. Beneficios: escala infinito, mejor privacidad. Costo: cada turno envía más bytes.</li>
+  <li><strong>Catálogo de modelos</strong>: Llama 3.1 8B/70B/3B, Vision, BGE embeddings, Stable Diffusion. Se cambia con un edit de <code>[vars]</code>.</li>
+</ul>
+
+<!-- ============================================== -->
+<h2 id="seguridad">11. Seguridad</h2>
+
+<div class="card warn">
+  <h3 style="margin-top:0">Lo que se hizo bien</h3>
+  <ul>
+    <li class="check"><code>.dev.vars</code> en <code>.gitignore</code> — el token de desarrollo nunca llega a GitHub.</li>
+    <li class="check">Token de producción como <em>secret</em> en Cloudflare (encriptado, write-only).</li>
+    <li class="check">Endpoint <code>POST /api/chat</code> protegido con <code>Authorization: Bearer</code>.</li>
+    <li class="check">Validación de cada mensaje: roles permitidos, contenido entre 1 y 4000 caracteres.</li>
+    <li class="check">Límite <code>MAX_MESSAGES = 30</code>: evita bucles que envían historiales infinitos.</li>
+    <li class="check">Token generado con <code>openssl rand -hex 24</code> (96 bits de entropía).</li>
+    <li class="check">Códigos HTTP correctos (401, 400) que no filtran información extra.</li>
+    <li class="check"><code>max_tokens: 1024</code> server-side limita la respuesta aunque el cliente pida más.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Mejoras posibles para uso público</h3>
+  <ul>
+    <li>Agregar <strong>Cloudflare Turnstile</strong> al formulario para evitar bots.</li>
+    <li>Implementar <strong>rate limiting</strong> por IP (Workers tiene API nativa).</li>
+    <li>Moderar contenido con <strong>Llama Guard</strong> u otro modelo antes y/o después del modelo principal.</li>
+    <li>Loggear (sin contenido sensible) los abusos detectados para análisis posterior.</li>
+    <li>Validar que el <code>system</code> prompt enviado por el cliente (si se permite) no contenga jailbreaks conocidos.</li>
+    <li>Múltiples tokens con quota distinta por usuario.</li>
+    <li>Rotar el <code>AUTH_TOKEN</code> periódicamente.</li>
+  </ul>
+</div>
+
+<!-- ============================================== -->
+<h2 id="limitaciones">12. Limitaciones del modelo</h2>
+
+<ul>
+  <li><strong>Cutoff de conocimiento</strong>: Llama 3.1 fue entrenado con datos hasta mediados de 2024. No conoce noticias / eventos posteriores.</li>
+  <li><strong>Alucinaciones</strong>: como cualquier LLM, puede inventar datos con confianza. No usarlo para hechos verificables sin doble check.</li>
+  <li><strong>Idiomas</strong>: muy bueno en inglés, bueno en español. Otros idiomas pueden tener calidad variable.</li>
+  <li><strong>Sin acceso a internet</strong>: no busca cosas en tiempo real. Si le preguntás "qué hora es" o "cuál es la última noticia", inventa.</li>
+  <li><strong>Sin tools / function calling</strong>: este Worker no expone tools. Llama responde solo con texto, no puede llamar APIs externas.</li>
+  <li><strong>Contexto limitado</strong>: el modelo tiene una ventana de contexto (8K tokens para 3.1 8B). Conversaciones muy largas eventualmente pierden el inicio.</li>
+  <li><strong>No multimodal en este modelo</strong>: para subir imágenes hay que cambiar a <code>llama-3.2-11b-vision-instruct</code>.</li>
+</ul>
+
+<!-- ============================================== -->
+<h2 id="mejoras">13. Mejoras posibles</h2>
+
+<ol>
+  <li>
+    <strong>Function calling / tools</strong> — Permitir que Llama decida llamar a otras APIs (clima, búsqueda, calculadora). Se hace pasando definiciones de tools en el request.
+  </li>
+  <li>
+    <strong>RAG (Retrieval-Augmented Generation)</strong> — Indexar tus documentos con embeddings (BGE) en Vectorize y meterlos como contexto. El chat responde con info tuya.
+  </li>
+  <li>
+    <strong>Multimodal (imágenes)</strong> — Cambiar a Llama Vision. Endpoint que acepta <code>{messages, image}</code> y el modelo responde sobre la imagen.
+  </li>
+  <li>
+    <strong>Persistencia opcional en D1</strong> — Endpoint <code>POST /api/conversations</code> que guarda el historial actual con un id y permite recuperarlo desde otro dispositivo.
+  </li>
+  <li>
+    <strong>Múltiples conversaciones</strong> — UI con tabs o sidebar para mantener varios chats abiertos en paralelo.
+  </li>
+  <li>
+    <strong>Exportar conversaciones</strong> — Botón para bajar el historial como Markdown o JSON.
+  </li>
+  <li>
+    <strong>Edit / regenerate</strong> — Permitir editar el último mensaje del usuario y regenerar la respuesta. O regenerar la respuesta sin editar el prompt (para ver variaciones).
+  </li>
+  <li>
+    <strong>Selector de modelo en la UI</strong> — Permitir al usuario elegir entre Llama 8B (rápido), 70B (capaz) y 3B (más rápido aún) desde el frontend.
+  </li>
+</ol>
+
+<!-- ============================================== -->
+<h2>Enlaces relacionados</h2>
+
+<table>
+  <thead><tr><th>Recurso</th><th>URL</th></tr></thead>
+  <tbody>
+    <tr><td>App en producción</td><td><a href="https://chat-ai.dpacheco65.workers.dev" target="_blank">chat-ai.dpacheco65.workers.dev</a></td></tr>
+    <tr><td>Código fuente</td><td><a href="https://github.com/dpacheco65/chat-ai" target="_blank">github.com/dpacheco65/chat-ai</a></td></tr>
+    <tr><td>Flujo detallado con diagrama SVG</td><td><a href="/flujo-ai">/flujo-ai</a></td></tr>
+    <tr><td>Informe general del recorrido</td><td><a href="/informe">/informe</a></td></tr>
+    <tr><td>Workers AI docs (oficial)</td><td><a href="https://developers.cloudflare.com/workers-ai/" target="_blank">developers.cloudflare.com/workers-ai/</a></td></tr>
+    <tr><td>Catálogo de modelos (oficial)</td><td><a href="https://developers.cloudflare.com/workers-ai/models/" target="_blank">developers.cloudflare.com/workers-ai/models/</a></td></tr>
+  </tbody>
+</table>
+
+<footer>
+  Informe del proyecto Chat AI · Cloudflare Workers AI con Llama 3.1
+  &nbsp;·&nbsp; <a href="/">Volver al inicio</a>
+</footer>
+
+</div>
+</body>
+</html>
